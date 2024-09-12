@@ -3,10 +3,11 @@ package ie.miguel.chessengine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static ie.miguel.chessengine.MoveTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class BoardTest {
-
+// TODO: Tests for capturing, pins, moving off edge.
+class MoveTest {
     Board board;
     @BeforeEach
     void setUp() {
@@ -14,18 +15,33 @@ class BoardTest {
     }
 
     @Test
+    public void testNotSelfMove(){
+        // Tests that all pieces cannot move to themselves.
+        for (PieceType piece : PieceType.values()) {
+            // TODO: Instead of initilizing a new board it would be better to jsut remove the piece and then continue.
+            Board board = new Board();
+            board.clearBoard();
+            board.placeNewPiece(piece, 32);
+            Move nonMoveMove = new Move(piece, 32, 32);
+            assertThrows(IllegalMoveException.class, () -> board.makeMove(nonMoveMove), piece + " ABLE TO MOVE TO OWN POSITION");
+        }
+    }
+
+    @Test
     public void testWhitePawns(){
         // TODO: Tests for En Passant and Promotions. Capturing around the edge (i.e. 24 -> 39 for white).
+        // TODO: Refactor this and conjoin with Black tests.
         // Beginning Moves.
         Move oneStep = new Move(PieceType.WHITE_PAWN, 8, 16);
         Move twoStep = new Move(PieceType.WHITE_PAWN, 9, 25);
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
         assertDoesNotThrow(() -> board.makeMove(twoStep), twoStep + " FIRST TWO STEP");
 
-        // Illegal Moves.
-        Move toSelf = new Move(PieceType.WHITE_PAWN, 15, 15);
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(toSelf));
+        board.placeNewPiece(PieceType.WHITE_PAWN, 22);
+        Move twoStepHop = new Move(PieceType.WHITE_PAWN, 14, 30);
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(twoStepHop), twoStepHop + " HOPPING OVER PIECE ON FIRST MOVE");
 
+        // Illegal Moves.
         Move twoStepAfterOne = new Move(PieceType.WHITE_PAWN, 16, 32);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(twoStepAfterOne), twoStepAfterOne + " TWO STEP AFTER ONE STEP");
 
@@ -66,6 +82,10 @@ class BoardTest {
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
         assertDoesNotThrow(() -> board.makeMove(twoStep), twoStep + " FIRST TWO STEP");
 
+        board.placeNewPiece(PieceType.BLACK_PAWN, 44);
+        Move twoStepHop = new Move(PieceType.BLACK_PAWN, 52, 36);
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(twoStepHop), twoStepHop + " HOPPING OVER PIECE ON FIRST MOVE");
+
         // Illegal Moves.
         Move toSelf = new Move(PieceType.BLACK_PAWN, 50, 50);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(toSelf));
@@ -80,12 +100,11 @@ class BoardTest {
         assertThrows(IllegalMoveException.class, () -> board.makeMove(backwards), backwards + " BACKWARDS MOVE");
 
         board.placeNewPiece(PieceType.BLACK_PAWN, 47);
-        Move moveOnToSelf = new Move(PieceType.BLACK_PAWN, 55, 47);
+        Move moveOnToSelf = new Move(PieceType.BLACK_PAWN, 55, 55);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(moveOnToSelf), moveOnToSelf + " MOVING ONTO SELF");
 
-
         // Captures.
-        Move takeSelf = new Move(PieceType.BLACK_PAWN, 16, 25);
+        Move takeSelf = new Move(PieceType.BLACK_PAWN, 54, 47);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeSelf), takeSelf + " TAKING OWN PAWN");
 
         board.placeNewPiece(PieceType.WHITE_PAWN, 24);
@@ -100,5 +119,45 @@ class BoardTest {
 
         Move takeEnemyInfront = new Move(PieceType.BLACK_PAWN, 33, 25);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeEnemyInfront), takeEnemyInfront + " TAKING ENEMY IN FRONT");
+    }
+
+    @Test
+    public void testKnights(){
+        testKnightMoves(PieceType.WHITE_KNIGHT);
+        testKnightMoves(PieceType.BLACK_KNIGHT);
+    }
+
+    @Test
+    public void testBishops(){
+        // TODO: Capturing and moving off edge
+        testLegalDiagonal(PieceType.WHITE_BISHOP);
+        testLegalDiagonal(PieceType.BLACK_BISHOP);
+        testIllegalStraight(PieceType.WHITE_BISHOP);
+        testIllegalStraight(PieceType.BLACK_BISHOP);
+    }
+
+    @Test
+    public void testRooks(){
+        // TODO: Capturing, Castling, and moving off edge
+        testLegalStraight(PieceType.WHITE_ROOK);
+        testLegalStraight(PieceType.BLACK_ROOK);
+        testIllegalDiagonal(PieceType.WHITE_ROOK);
+        testIllegalDiagonal(PieceType.BLACK_ROOK);
+    }
+
+    @Test
+    public void testQueens(){
+        // TODO: Capturing and moving off edge
+        testLegalStraight(PieceType.WHITE_QUEEN);
+        testLegalStraight(PieceType.BLACK_QUEEN);
+        testLegalDiagonal(PieceType.WHITE_QUEEN);
+        testLegalDiagonal(PieceType.BLACK_QUEEN);
+    }
+
+    @Test
+    public void testKings(){
+        // TODO: Checks, Captures, Castling
+        kingTest(PieceType.WHITE_KING);
+        kingTest(PieceType.BLACK_KING);
     }
 }

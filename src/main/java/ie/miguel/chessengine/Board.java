@@ -7,6 +7,8 @@ public class Board {
     public static void main(String[] args) {
         Board board = new Board();
         System.out.println(board.toString());
+        board.clearBoard();
+        System.out.println(board.toString());
     }
 
     // Bitboards for the starting position where a1 = 0, and h8 = 63.
@@ -28,6 +30,14 @@ public class Board {
         pieceBitBoards.put(PieceType.BLACK_BISHOP, 0x2400000000000000L);
         pieceBitBoards.put(PieceType.BLACK_QUEEN, 0x800000000000000L);
         pieceBitBoards.put(PieceType.BLACK_KING, 0x1000000000000000L);
+    }
+
+    public void clearBoard(){
+        for (PieceType pieceType : pieceBitBoards.keySet()) {
+            long bitboard = pieceBitBoards.get(pieceType);
+            bitboard = 0L;
+            pieceBitBoards.put(pieceType, bitboard);
+        }
     }
 
     @Override
@@ -65,12 +75,12 @@ public class Board {
     }
 
     public void makeMove(Move move){
-        if (!moveCheck.isLegalMove(move, this)){
+        if (!moveUtils.isLegalMove(move, this)){
             throw new IllegalMoveException("Illegal move: " + move);
         }
-        long from = move.getFromSquare();
-        long to = move.getToSquare();
-        PieceType piece = move.getPiece();
+        long from = move.fromSquare();
+        long to = move.toSquare();
+        PieceType piece = move.piece();
 
         long fromMask = 1L << from;
         long toMask = 1L << to;
@@ -100,7 +110,7 @@ public class Board {
     public void placeNewPiece(PieceType piece, long location){
         // This is useful for testing.
         // TODO: If piece is being placed ontop of a piece remove that piece from previous bitboard.
-        if (squareIsOccupied(location)){
+        if (squareIsOccupied(location) != null){
             // DO SOMETHING
         }
         long bitboard = pieceBitBoards.get(piece);
@@ -109,18 +119,19 @@ public class Board {
         pieceBitBoards.put(piece, bitboard);
     }
 
-    public boolean squareIsOccupied(long location){
+    public PieceType squareIsOccupied(long location){
         if (location < 0 || location > 63){
             throw new IllegalArgumentException("Location must be between 0 and 63");
         }
 
         long mask = 1L << location;
 
-        for (long bitboard: pieceBitBoards.values()){
-            if ((bitboard & mask) != 0) return true;
+        for (PieceType piece: pieceBitBoards.keySet()){
+            long bitboard = pieceBitBoards.get(piece);
+            if ((bitboard & mask) != 0) return piece;
         }
 
-        return false;
+        return null;
     }
 
     public boolean isCheck(){
