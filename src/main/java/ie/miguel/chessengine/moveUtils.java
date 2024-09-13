@@ -7,7 +7,7 @@ import java.util.List;
 public class moveUtils {
     public static boolean isLegalMove(Move move, Board board){
         PieceType piece = move.piece();
-        if (move.fromSquare() == move.toSquare()) throw new IllegalMoveException("Cannot move piece to its current location: " + move);
+        if (move.fromSquare() == move.toSquare()) return false;
 
         if (piece == PieceType.WHITE_PAWN || piece == PieceType.BLACK_PAWN){
             return isLegalPawnMove(move, board);
@@ -49,8 +49,8 @@ public class moveUtils {
             throw new IllegalMoveException("Invalid move: " + move);
         }
 
-        long fromSquare = move.fromSquare();
-        long toSquare = move.toSquare();
+        int fromSquare = move.fromSquare();
+        int toSquare = move.toSquare();
 
         PieceType pieceAtToLocation = board.squareIsOccupied(toSquare);
         // Normal Move

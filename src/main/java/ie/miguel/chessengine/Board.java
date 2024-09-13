@@ -3,17 +3,20 @@ package ie.miguel.chessengine;
 import java.util.EnumMap;
 import java.util.HashSet;
 
+import static ie.miguel.chessengine.BoardUtils.getPieceLocations;
+import static ie.miguel.chessengine.moveUtils.isLegalMove;
+
 public class Board {
     public static void main(String[] args) {
         Board board = new Board();
-        System.out.println(board.toString());
-        board.clearBoard();
-        System.out.println(board.toString());
+        System.out.println(board.generateMovesForPiece(PieceType.WHITE_PAWN));
+        System.out.println(board.generateMovesForPiece(PieceType.WHITE_PAWN).size());
+        System.out.println(board.generateMovesForPiece(PieceType.WHITE_KNIGHT));
+        System.out.println(board.generateMovesForPiece(PieceType.WHITE_KNIGHT).size());
     }
-
     // Bitboards for the starting position where a1 = 0, and h8 = 63.
     EnumMap<PieceType, Long> pieceBitBoards;
-    boolean whiteToMove = true;
+    private boolean whiteToMove = true;
 
     public Board() {
         this.pieceBitBoards = new EnumMap<>(PieceType.class);
@@ -23,7 +26,6 @@ public class Board {
         pieceBitBoards.put(PieceType.WHITE_BISHOP, 0x24L);
         pieceBitBoards.put(PieceType.WHITE_QUEEN, 0x8L);
         pieceBitBoards.put(PieceType.WHITE_KING, 0x10L);
-
         pieceBitBoards.put(PieceType.BLACK_PAWN, 0xff000000000000L);
         pieceBitBoards.put(PieceType.BLACK_ROOK, 0x8100000000000000L);
         pieceBitBoards.put(PieceType.BLACK_KNIGHT, 0x4200000000000000L);
@@ -32,12 +34,13 @@ public class Board {
         pieceBitBoards.put(PieceType.BLACK_KING, 0x1000000000000000L);
     }
 
+    public Board(Board old){
+        this.pieceBitBoards = new EnumMap<>(old.pieceBitBoards);
+        this.whiteToMove = old.whiteToMove;
+    }
+
     public void clearBoard(){
-        for (PieceType pieceType : pieceBitBoards.keySet()) {
-            long bitboard = pieceBitBoards.get(pieceType);
-            bitboard = 0L;
-            pieceBitBoards.put(pieceType, bitboard);
-        }
+        pieceBitBoards.replaceAll((t, v) -> 0L);
     }
 
     @Override
@@ -75,51 +78,50 @@ public class Board {
     }
 
     public void makeMove(Move move){
-        if (!moveUtils.isLegalMove(move, this)){
+        if (!isLegalMove(move, this)){
             throw new IllegalMoveException("Illegal move: " + move);
         }
-        long from = move.fromSquare();
-        long to = move.toSquare();
-        PieceType piece = move.piece();
 
-        long fromMask = 1L << from;
-        long toMask = 1L << to;
+        PieceType movingPiece = squareIsOccupied(move.fromSquare());
 
-        // This checks if the piece is in the from place.
+        if (movingPiece != move.piece()){
+            throw new IllegalMoveException("Attempted to move " + move.piece() + " from " + move.fromSquare() + " but " + movingPiece + " is present instead.");
+        }
+
+        PieceType toCapture = squareIsOccupied(move.toSquare());
+        if (toCapture != null){
+            removePiece(toCapture, move.toSquare());
+        }
+        placePiece(move.piece(), move.toSquare());
+        removePiece(move.piece(), move.fromSquare());
+    }
+
+    public HashSet<Move> generateAllPossibleMoves(){
+        // My thinking is we need to generate all possible moves even ones that result in check.
+        // Then we can use this to see if any of the moves could take the king.
+        // If so those moves are removed from the set.
+        HashSet<Move> possibleMoves = new HashSet<>();
+
+
+        return possibleMoves;
+    }
+
+    public HashSet<Move> generateMovesForPiece(PieceType piece) {
+        HashSet<Move> possibleMoves = new HashSet<>();
         long bitboard = pieceBitBoards.get(piece);
-        if ((bitboard & fromMask) != 0) {
-            // Remove the piece from the from location.
-            bitboard &= ~ fromMask;
-
-            // Moves the piece to the to location.
-            bitboard |= toMask;
-
-            // Updates the piece board.
-            pieceBitBoards.put(piece, bitboard);
+        HashSet<Integer> pieceLocations = getPieceLocations(bitboard);
+        for (int location: pieceLocations){
+            for (int i = 0; i <= 63; i++){
+                Move move = new Move(piece, location, i);
+                if (isLegalMove(move, this)) {
+                    possibleMoves.add(move);
+                }
+            }
         }
+        return possibleMoves;
     }
 
-    public HashSet<Move> getPossibleMoves(PieceType piece){
-        switch (piece){
-            case WHITE_PAWN:
-
-        }
-        return null;
-    }
-
-    public void placeNewPiece(PieceType piece, long location){
-        // This is useful for testing.
-        // TODO: If piece is being placed ontop of a piece remove that piece from previous bitboard.
-        if (squareIsOccupied(location) != null){
-            // DO SOMETHING
-        }
-        long bitboard = pieceBitBoards.get(piece);
-        long mask = 1L << location;
-        bitboard |= mask;
-        pieceBitBoards.put(piece, bitboard);
-    }
-
-    public PieceType squareIsOccupied(long location){
+    public PieceType squareIsOccupied(int location){
         if (location < 0 || location > 63){
             throw new IllegalArgumentException("Location must be between 0 and 63");
         }
@@ -132,6 +134,59 @@ public class Board {
         }
 
         return null;
+    }
+
+    public long findKingPosition(PieceType king){
+        if (!(king == PieceType.WHITE_KING || king == PieceType.BLACK_KING)){
+            throw new IllegalArgumentException("Non-King being passed to find king position.");
+        }
+
+        long kingBitboard = pieceBitBoards.get(king);
+        return Long.numberOfTrailingZeros(kingBitboard);
+    }
+
+    public void simulateMove(Move move){
+        Board simulationBoard = new Board(this);
+        simulationBoard.makeMove(move);
+    }
+
+    private PieceType capturePiece(Move move){
+        // Returns the piece that was captured.
+        PieceType capturedPiece = squareIsOccupied(move.toSquare());
+        if (capturedPiece == null){
+            throw new IllegalArgumentException("Attempting to capture at: " + move.toSquare() + " but no piece is present to capture.");
+        }
+
+        removePiece(capturedPiece, move.toSquare());
+        placePiece(move.piece(), move.toSquare());
+
+        return capturedPiece;
+    }
+
+    public void removePiece(PieceType piece, int location){
+        if (piece != squareIsOccupied(location)){
+            throw new IllegalArgumentException("Attempting to remove " + piece + " from " + location + " but "
+                    + squareIsOccupied(location) + " is at location.");
+        }
+
+        long bitboard = pieceBitBoards.get(piece);
+        long locationMask = 1L << location;
+        bitboard = bitboard ^ locationMask;
+        pieceBitBoards.put(piece, bitboard);
+    }
+
+    public void placePiece(PieceType piece, int location){
+        if (squareIsOccupied(location) != null){
+            throw new IllegalArgumentException("Attempted to place " + piece + " at " + location + " but a piece is already there.");
+        }
+        long bitboard = pieceBitBoards.get(piece);
+        long mask = 1L << location;
+        bitboard |= mask;
+        pieceBitBoards.put(piece, bitboard);
+    }
+
+    public boolean isWhiteToMove(){
+        return whiteToMove;
     }
 
     public boolean isCheck(){

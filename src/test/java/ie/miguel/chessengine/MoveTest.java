@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static ie.miguel.chessengine.MoveTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-// TODO: Tests for capturing, pins, moving off edge.
+// TODO: Tests for capturing, moving off edge, not moving if king is in check.
 class MoveTest {
     Board board;
     @BeforeEach
@@ -21,9 +21,34 @@ class MoveTest {
             // TODO: Instead of initilizing a new board it would be better to jsut remove the piece and then continue.
             Board board = new Board();
             board.clearBoard();
-            board.placeNewPiece(piece, 32);
+            board.placePiece(piece, 32);
             Move nonMoveMove = new Move(piece, 32, 32);
             assertThrows(IllegalMoveException.class, () -> board.makeMove(nonMoveMove), piece + " ABLE TO MOVE TO OWN POSITION");
+        }
+    }
+
+    @Test
+    public void testPieceDoesNotMoveIntoCheckmate(){
+        for (PieceType piece : PieceType.values()) {
+            if (piece == PieceType.WHITE_KING || piece == PieceType.BLACK_KING) {
+                continue;
+            }
+            char colour = String.valueOf(piece).charAt(0);
+            PieceType enemy = colour == 'W' ? PieceType.BLACK_ROOK : PieceType.WHITE_ROOK;
+            PieceType king = colour == 'W' ? PieceType.WHITE_KING : PieceType.BLACK_KING;
+
+            Board board = new Board();
+            board.clearBoard();
+
+            board.placePiece(king, 35);
+            board.placePiece(piece, 34);
+            board.placePiece(enemy, 33);
+
+            // Check that the piece cannot move.
+            for (int i = 0; i <= 63; i++) {
+                Move move = new Move(piece, 35, i);
+                assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move + " allows king to be captured.");
+            }
         }
     }
 
@@ -37,7 +62,7 @@ class MoveTest {
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
         assertDoesNotThrow(() -> board.makeMove(twoStep), twoStep + " FIRST TWO STEP");
 
-        board.placeNewPiece(PieceType.WHITE_PAWN, 22);
+        board.placePiece(PieceType.WHITE_PAWN, 22);
         Move twoStepHop = new Move(PieceType.WHITE_PAWN, 14, 30);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(twoStepHop), twoStepHop + " HOPPING OVER PIECE ON FIRST MOVE");
 
@@ -51,7 +76,7 @@ class MoveTest {
         Move backwards = new Move(PieceType.WHITE_PAWN, 12, 4);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(backwards), backwards + " BACKWARDS MOVE");
 
-        board.placeNewPiece(PieceType.WHITE_PAWN, 23);
+        board.placePiece(PieceType.WHITE_PAWN, 23);
         Move moveOnToSelf = new Move(PieceType.WHITE_PAWN, 15, 23);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(moveOnToSelf), moveOnToSelf + " MOVING ONTO SELF");
 
@@ -59,9 +84,9 @@ class MoveTest {
         Move takeSelf = new Move(PieceType.WHITE_PAWN, 16, 25);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeSelf), takeSelf + " TAKING OWN PAWN");
 
-        board.placeNewPiece(PieceType.BLACK_PAWN, 32);
-        board.placeNewPiece(PieceType.BLACK_PAWN, 33);
-        board.placeNewPiece(PieceType.BLACK_PAWN, 34);
+        board.placePiece(PieceType.BLACK_PAWN, 32);
+        board.placePiece(PieceType.BLACK_PAWN, 33);
+        board.placePiece(PieceType.BLACK_PAWN, 34);
 
         Move takeEnemyRight = new Move(PieceType.WHITE_PAWN, 25, 34);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyRight), takeEnemyRight + " TAKING ENEMY ON RIGHT");
@@ -82,7 +107,7 @@ class MoveTest {
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
         assertDoesNotThrow(() -> board.makeMove(twoStep), twoStep + " FIRST TWO STEP");
 
-        board.placeNewPiece(PieceType.BLACK_PAWN, 44);
+        board.placePiece(PieceType.BLACK_PAWN, 44);
         Move twoStepHop = new Move(PieceType.BLACK_PAWN, 52, 36);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(twoStepHop), twoStepHop + " HOPPING OVER PIECE ON FIRST MOVE");
 
@@ -99,7 +124,7 @@ class MoveTest {
         Move backwards = new Move(PieceType.BLACK_PAWN, 50, 58);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(backwards), backwards + " BACKWARDS MOVE");
 
-        board.placeNewPiece(PieceType.BLACK_PAWN, 47);
+        board.placePiece(PieceType.BLACK_PAWN, 47);
         Move moveOnToSelf = new Move(PieceType.BLACK_PAWN, 55, 55);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(moveOnToSelf), moveOnToSelf + " MOVING ONTO SELF");
 
@@ -107,9 +132,9 @@ class MoveTest {
         Move takeSelf = new Move(PieceType.BLACK_PAWN, 54, 47);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeSelf), takeSelf + " TAKING OWN PAWN");
 
-        board.placeNewPiece(PieceType.WHITE_PAWN, 24);
-        board.placeNewPiece(PieceType.WHITE_PAWN, 25);
-        board.placeNewPiece(PieceType.WHITE_PAWN, 26);
+        board.placePiece(PieceType.WHITE_PAWN, 24);
+        board.placePiece(PieceType.WHITE_PAWN, 25);
+        board.placePiece(PieceType.WHITE_PAWN, 26);
 
         Move takeEnemyRight = new Move(PieceType.BLACK_PAWN, 33, 26);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyRight), takeEnemyRight + " TAKING ENEMY ON RIGHT");
