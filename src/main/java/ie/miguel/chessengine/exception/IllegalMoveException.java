@@ -1,4 +1,4 @@
-package ie.miguel.chessengine;
+package ie.miguel.chessengine.exception;
 
 public class IllegalMoveException extends RuntimeException{
     public IllegalMoveException(String message){

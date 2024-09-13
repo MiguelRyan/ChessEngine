@@ -1,5 +1,9 @@
 package ie.miguel.chessengine;
 
+import ie.miguel.chessengine.board.Board;
+import ie.miguel.chessengine.exception.IllegalMoveException;
+import ie.miguel.chessengine.move.Move;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -9,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class MoveTestUtils {
     public static void testLegalStraight(PieceType piece){
         // These tests should pass for pieces that are allowed to move in straight lines (Rook and Queen).
-        Board board = new Board();
+        Board board = new Board(piece);
         board.clearBoard();
 
         board.placePiece(piece, 35);
@@ -45,7 +49,7 @@ public class MoveTestUtils {
         board.placePiece(PieceType.WHITE_PAWN, 27);
         board.placePiece(PieceType.WHITE_PAWN, 43);
 
-        assertThrows(IllegalArgumentException.class, () -> board.makeMove(upTwo), upTwo + " JUMPING OVER PIECE MOVING UP");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(upTwo), upTwo + " JUMPING OVER PIECE MOVING UP");
         assertThrows(IllegalMoveException.class, () -> board.makeMove(downTwo), downTwo + " JUMPING OVER PIECE MOVING DOWN");
         assertThrows(IllegalMoveException.class, () -> board.makeMove(twoRight), twoRight + " JUMPING OVER PIECE MOVING RIGHT");
         assertThrows(IllegalMoveException.class, () -> board.makeMove(twoLeft), twoLeft + " JUMPING OVER PIECE MOVING LEFT");
@@ -53,7 +57,7 @@ public class MoveTestUtils {
 
     public static void testIllegalStraight(PieceType piece){
         // These tests should pass for pieces that do not move in straight lines.
-        Board board = new Board();
+        Board board = new Board(piece);
         board.clearBoard();
 
         board.placePiece(piece, 32);
@@ -73,7 +77,7 @@ public class MoveTestUtils {
 
     public static void testLegalDiagonal(PieceType piece){
         // These tests should pass for pieces that are allowed to move diagonally.
-        Board board = new Board();
+        Board board = new Board(piece);
         board.clearBoard();
 
         board.placePiece(piece, 43);
@@ -103,7 +107,7 @@ public class MoveTestUtils {
 
     public static void testIllegalDiagonal(PieceType piece){
         // These tests should pass for pieces that are not supposed to move diagonally.
-        Board board = new Board();
+        Board board = new Board(piece);
         board.clearBoard();
 
         board.placePiece(piece, 16);
@@ -142,22 +146,24 @@ public class MoveTestUtils {
         testBasedOnValid(knight, validPositionsFrom15, 15);
     }
 
-    private static void testBasedOnValid(PieceType knight, List<Integer> validPositions, int position) {
-        Board board = new Board();
+    private static void testBasedOnValid(PieceType piece, List<Integer> validPositions, int position) {
+        // This function takes a piece, an array of where it is allowed to go, and the staring position.
+        // It then checks that the piece can ONLY move to legal positions and not move to illegal positions.
+        Board board = new Board(piece);
         board.clearBoard();
-        board.placePiece(knight, position);
+        board.placePiece(piece, position);
 
         for (int i = 0; i <= 63; i++){
-            Move testMove = new Move(knight, position, i);
+            Move testMove = new Move(piece, position, i);
             if (validPositions.contains(i)){
-                assertDoesNotThrow(() -> board.makeMove(testMove), testMove + " NORMAL KNIGHT MOVE");
-                Move reverseMove = new Move(knight, i, position);
-                assertDoesNotThrow(() -> board.makeMove(reverseMove), reverseMove + " NORMAL KNIGHT MOVE");
+                assertDoesNotThrow(() -> board.makeMove(testMove), testMove + " NORMAL MOVE");
+                Move reverseMove = new Move(piece, i, position);
+                assertDoesNotThrow(() -> board.makeMove(reverseMove), reverseMove + " NORMAL MOVE");
             } else {
-                assertThrows(IllegalMoveException.class, () -> board.makeMove(testMove), testMove + " KNIGHT MAKING ILLEGAL MOVE");
+                assertThrows(IllegalMoveException.class, () -> board.makeMove(testMove), testMove + " MAKING ILLEGAL MOVE");
             }
         }
-        board.removePiece(knight, position);
+        board.removePiece(piece, position);
     }
 
     public static void kingTest(PieceType king){
@@ -165,22 +171,23 @@ public class MoveTestUtils {
         if (!(king == PieceType.WHITE_KING || king == PieceType.BLACK_KING)){
             throw new IllegalArgumentException("Non-King being passed into King tests.");
         }
-        Board board = new Board();
+        Board board = new Board(king);
         board.clearBoard();
         board.placePiece(king, 35);
-        List<Integer> legalFrom35 = Arrays.asList(26, 27, 28, 34, 36, 42, 43, 44);
 
-        // Basic Movement when nothing in the way.
-        for (int i = 0; i <= 63; i++){
-            Move move = new Move(king, 35, i);
-            if (!legalFrom35.contains(i)) {
-                assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move + " KING MOVE MORE THAN 1 AWAY.");
-            } else {
-                assertDoesNotThrow(() -> board.makeMove(move), move + " MOVING 1 FAILS");
-                Move reverseMove = new Move(king, i, 35);
-                assertDoesNotThrow(() -> board.makeMove(reverseMove), reverseMove + " MOVING 1 FAILS");
-            }
-        }
+        List<Integer> legalFrom35 = Arrays.asList(26, 27, 28, 34, 36, 42, 43, 44);
+        List<Integer> legalFrom00 = Arrays.asList(1, 8, 9);
+        List<Integer> legalFrom56 = Arrays.asList(48, 49, 57);
+        List<Integer> legalFrom63 = Arrays.asList(54, 55, 62);
+        List<Integer> legalFrom07 = Arrays.asList(6, 14, 15);
+        List<Integer> legalFrom31 = Arrays.asList(22, 23, 30, 38, 39);
+
+        testBasedOnValid(king, legalFrom35,35);
+        testBasedOnValid(king, legalFrom00,0);
+        testBasedOnValid(king, legalFrom56,56);
+        testBasedOnValid(king, legalFrom63,63);
+        testBasedOnValid(king, legalFrom07,07);
+        testBasedOnValid(king, legalFrom31,31);
 
         // Make sure king can't move into own piece
         PieceType knight;
@@ -198,22 +205,6 @@ public class MoveTestUtils {
         for (int i: legalFrom35){
             Move move = new Move(king, 35, i);
             assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move + " KING MOVES INTO SAME COLOURED PIECE");
-        }
-
-        board.clearBoard();
-        board.placePiece(king, 0);
-
-        // Cannot Move off the edge.
-        List<Integer> legalFrom00 = Arrays.asList(1, 8, 9);
-        for (int i = 0; i <= 63; i++){
-            Move move = new Move(king, 0, i);
-            if (legalFrom00.contains(i)) {
-                assertDoesNotThrow(() -> board.makeMove(move), move + " KING CANNOT MOVE WHEN IN CORNER");
-                Move reverseMove = new Move(king, i, 0);
-                assertDoesNotThrow(() -> board.makeMove(reverseMove), reverseMove + " KING CANNOT MOVE WHEN IN CORNER");
-            } else {
-                assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move +" KING MOVES OFF EDGE WHEN IN CORNER");
-            }
         }
     }
 }

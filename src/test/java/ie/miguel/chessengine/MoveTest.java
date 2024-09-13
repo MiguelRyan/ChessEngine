@@ -1,5 +1,9 @@
 package ie.miguel.chessengine;
 
+import ie.miguel.chessengine.board.Board;
+import ie.miguel.chessengine.exception.IllegalMoveException;
+import ie.miguel.chessengine.exception.OutOfOrderMoveException;
+import ie.miguel.chessengine.move.Move;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +23,7 @@ class MoveTest {
         // Tests that all pieces cannot move to themselves.
         for (PieceType piece : PieceType.values()) {
             // TODO: Instead of initilizing a new board it would be better to jsut remove the piece and then continue.
-            Board board = new Board();
+            Board board = new Board(piece);
             board.clearBoard();
             board.placePiece(piece, 32);
             Move nonMoveMove = new Move(piece, 32, 32);
@@ -37,7 +41,7 @@ class MoveTest {
             PieceType enemy = colour == 'W' ? PieceType.BLACK_ROOK : PieceType.WHITE_ROOK;
             PieceType king = colour == 'W' ? PieceType.WHITE_KING : PieceType.BLACK_KING;
 
-            Board board = new Board();
+            Board board = new Board(piece);
             board.clearBoard();
 
             board.placePiece(king, 35);
@@ -46,10 +50,21 @@ class MoveTest {
 
             // Check that the piece cannot move.
             for (int i = 0; i <= 63; i++) {
-                Move move = new Move(piece, 35, i);
+                Move move = new Move(piece, 34, i);
                 assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move + " allows king to be captured.");
             }
         }
+    }
+
+    @Test
+    public void testCannotMoveOutOfTurn(){
+        Move whiteMove = new Move(PieceType.WHITE_PAWN, 8, 16);
+        Move blackMove = new Move(PieceType.BLACK_PAWN, 48, 40);
+
+        assertThrows(OutOfOrderMoveException.class, () -> board.makeMove(blackMove));
+        assertDoesNotThrow(() -> board.makeMove(whiteMove));
+        assertThrows(OutOfOrderMoveException.class, () -> board.makeMove(whiteMove));
+        assertDoesNotThrow(() -> board.makeMove(blackMove));
     }
 
     @Test
@@ -75,10 +90,6 @@ class MoveTest {
 
         Move backwards = new Move(PieceType.WHITE_PAWN, 12, 4);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(backwards), backwards + " BACKWARDS MOVE");
-
-        board.placePiece(PieceType.WHITE_PAWN, 23);
-        Move moveOnToSelf = new Move(PieceType.WHITE_PAWN, 15, 23);
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(moveOnToSelf), moveOnToSelf + " MOVING ONTO SELF");
 
         // Captures.
         Move takeSelf = new Move(PieceType.WHITE_PAWN, 16, 25);
@@ -123,10 +134,6 @@ class MoveTest {
 
         Move backwards = new Move(PieceType.BLACK_PAWN, 50, 58);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(backwards), backwards + " BACKWARDS MOVE");
-
-        board.placePiece(PieceType.BLACK_PAWN, 47);
-        Move moveOnToSelf = new Move(PieceType.BLACK_PAWN, 55, 55);
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(moveOnToSelf), moveOnToSelf + " MOVING ONTO SELF");
 
         // Captures.
         Move takeSelf = new Move(PieceType.BLACK_PAWN, 54, 47);

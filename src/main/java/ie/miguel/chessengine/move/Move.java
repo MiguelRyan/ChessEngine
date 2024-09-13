@@ -1,4 +1,6 @@
-package ie.miguel.chessengine;
+package ie.miguel.chessengine.move;
+
+import ie.miguel.chessengine.PieceType;
 
 public record Move(PieceType piece, int fromSquare, int toSquare) {
     public Move {

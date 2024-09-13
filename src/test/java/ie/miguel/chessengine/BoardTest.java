@@ -1,11 +1,14 @@
 package ie.miguel.chessengine;
 
+import ie.miguel.chessengine.board.Board;
+import ie.miguel.chessengine.move.Move;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static ie.miguel.chessengine.BoardUtils.getPieceLocations;
+import static ie.miguel.chessengine.board.BoardUtils.findKingPosition;
+import static ie.miguel.chessengine.board.BoardUtils.getPieceLocations;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoardTest {
@@ -13,14 +16,14 @@ class BoardTest {
     @Test
     public void testFindKing(){
         Board board = new Board();
-        assertEquals(4, board.findKingPosition(PieceType.WHITE_KING));
-        assertEquals(60, board.findKingPosition(PieceType.BLACK_KING));
+        assertEquals(4, findKingPosition(PieceType.WHITE_KING, board));
+        assertEquals(60, findKingPosition(PieceType.BLACK_KING, board));
 
         board.clearBoard();
         board.placePiece(PieceType.WHITE_KING, 10);
         board.placePiece(PieceType.BLACK_KING, 15);
-        assertEquals(10, board.findKingPosition(PieceType.WHITE_KING));
-        assertEquals(15, board.findKingPosition(PieceType.BLACK_KING));
+        assertEquals(10, findKingPosition(PieceType.WHITE_KING, board));
+        assertEquals(15, findKingPosition(PieceType.BLACK_KING, board));
     }
 
     @Test
@@ -79,7 +82,7 @@ class BoardTest {
         for (int x: places){
             board.placePiece(PieceType.WHITE_PAWN, x);
         }
-        HashSet<Integer> test = getPieceLocations(board.pieceBitBoards.get(PieceType.WHITE_PAWN));
+        HashSet<Integer> test = getPieceLocations(board.getPieceBitBoards().get(PieceType.WHITE_PAWN));
         assertEquals(places, test);
     }
 }

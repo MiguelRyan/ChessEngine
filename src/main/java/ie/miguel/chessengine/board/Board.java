@@ -1,22 +1,25 @@
-package ie.miguel.chessengine;
+package ie.miguel.chessengine.board;
 
+import ie.miguel.chessengine.exception.IllegalMoveException;
+import ie.miguel.chessengine.move.Move;
+import ie.miguel.chessengine.exception.OutOfOrderMoveException;
+import ie.miguel.chessengine.PieceType;
+
+import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.HashSet;
+import java.util.List;
 
-import static ie.miguel.chessengine.BoardUtils.getPieceLocations;
-import static ie.miguel.chessengine.moveUtils.isLegalMove;
+import static ie.miguel.chessengine.move.moveUtils.*;
 
+// TODO: MAJOR MAJOR REFACTORING: There is a lot of code smell in the form of classes that have unclear goals. moveUtils specifically.
 public class Board {
-    public static void main(String[] args) {
-        Board board = new Board();
-        System.out.println(board.generateMovesForPiece(PieceType.WHITE_PAWN));
-        System.out.println(board.generateMovesForPiece(PieceType.WHITE_PAWN).size());
-        System.out.println(board.generateMovesForPiece(PieceType.WHITE_KNIGHT));
-        System.out.println(board.generateMovesForPiece(PieceType.WHITE_KNIGHT).size());
-    }
+    public final static List<PieceType> whitePieces = Arrays.asList(PieceType.WHITE_PAWN, PieceType.WHITE_BISHOP, PieceType.WHITE_ROOK, PieceType.WHITE_KNIGHT, PieceType.WHITE_KING, PieceType.WHITE_QUEEN);
+    public final static List<PieceType> blackPieces = Arrays.asList(PieceType.BLACK_PAWN, PieceType.BLACK_KNIGHT, PieceType.BLACK_KING, PieceType.BLACK_QUEEN, PieceType.BLACK_ROOK, PieceType.BLACK_BISHOP);
+
     // Bitboards for the starting position where a1 = 0, and h8 = 63.
-    EnumMap<PieceType, Long> pieceBitBoards;
+    private EnumMap<PieceType, Long> pieceBitBoards;
     private boolean whiteToMove = true;
+    private boolean moveChanges = true;
 
     public Board() {
         this.pieceBitBoards = new EnumMap<>(PieceType.class);
@@ -37,6 +40,26 @@ public class Board {
     public Board(Board old){
         this.pieceBitBoards = new EnumMap<>(old.pieceBitBoards);
         this.whiteToMove = old.whiteToMove;
+    }
+
+    public Board(PieceType piece) {
+        // Used for testing to ensure that the same piece can move over and over again.
+        // Pass the piece in and that colour will always be the one to move.
+        this.pieceBitBoards = new EnumMap<>(PieceType.class);
+        pieceBitBoards.put(PieceType.WHITE_PAWN, 0xff00L);
+        pieceBitBoards.put(PieceType.WHITE_ROOK, 0x81L);
+        pieceBitBoards.put(PieceType.WHITE_KNIGHT, 0x42L);
+        pieceBitBoards.put(PieceType.WHITE_BISHOP, 0x24L);
+        pieceBitBoards.put(PieceType.WHITE_QUEEN, 0x8L);
+        pieceBitBoards.put(PieceType.WHITE_KING, 0x10L);
+        pieceBitBoards.put(PieceType.BLACK_PAWN, 0xff000000000000L);
+        pieceBitBoards.put(PieceType.BLACK_ROOK, 0x8100000000000000L);
+        pieceBitBoards.put(PieceType.BLACK_KNIGHT, 0x4200000000000000L);
+        pieceBitBoards.put(PieceType.BLACK_BISHOP, 0x2400000000000000L);
+        pieceBitBoards.put(PieceType.BLACK_QUEEN, 0x800000000000000L);
+        pieceBitBoards.put(PieceType.BLACK_KING, 0x1000000000000000L);
+        moveChanges = false;
+        whiteToMove = whitePieces.contains(piece);
     }
 
     public void clearBoard(){
@@ -78,6 +101,10 @@ public class Board {
     }
 
     public void makeMove(Move move){
+        List<PieceType> piecesOfCurrentPlayer = whiteToMove ? whitePieces : blackPieces;
+        if (!piecesOfCurrentPlayer.contains(move.piece())){
+            throw new OutOfOrderMoveException("Wrong player moved " + move);
+        }
         if (!isLegalMove(move, this)){
             throw new IllegalMoveException("Illegal move: " + move);
         }
@@ -94,31 +121,11 @@ public class Board {
         }
         placePiece(move.piece(), move.toSquare());
         removePiece(move.piece(), move.fromSquare());
-    }
 
-    public HashSet<Move> generateAllPossibleMoves(){
-        // My thinking is we need to generate all possible moves even ones that result in check.
-        // Then we can use this to see if any of the moves could take the king.
-        // If so those moves are removed from the set.
-        HashSet<Move> possibleMoves = new HashSet<>();
-
-
-        return possibleMoves;
-    }
-
-    public HashSet<Move> generateMovesForPiece(PieceType piece) {
-        HashSet<Move> possibleMoves = new HashSet<>();
-        long bitboard = pieceBitBoards.get(piece);
-        HashSet<Integer> pieceLocations = getPieceLocations(bitboard);
-        for (int location: pieceLocations){
-            for (int i = 0; i <= 63; i++){
-                Move move = new Move(piece, location, i);
-                if (isLegalMove(move, this)) {
-                    possibleMoves.add(move);
-                }
-            }
+        // For the testing board.
+        if (moveChanges) {
+            whiteToMove = !whiteToMove;
         }
-        return possibleMoves;
     }
 
     public PieceType squareIsOccupied(int location){
@@ -134,20 +141,6 @@ public class Board {
         }
 
         return null;
-    }
-
-    public long findKingPosition(PieceType king){
-        if (!(king == PieceType.WHITE_KING || king == PieceType.BLACK_KING)){
-            throw new IllegalArgumentException("Non-King being passed to find king position.");
-        }
-
-        long kingBitboard = pieceBitBoards.get(king);
-        return Long.numberOfTrailingZeros(kingBitboard);
-    }
-
-    public void simulateMove(Move move){
-        Board simulationBoard = new Board(this);
-        simulationBoard.makeMove(move);
     }
 
     private PieceType capturePiece(Move move){
@@ -196,4 +189,9 @@ public class Board {
     public boolean isCheckmate(){
         return true;
     }
+
+    public EnumMap<PieceType, Long> getPieceBitBoards() {
+        return pieceBitBoards;
+    }
+
 }
