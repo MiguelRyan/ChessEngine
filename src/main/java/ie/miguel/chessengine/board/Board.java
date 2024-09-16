@@ -7,6 +7,7 @@ import ie.miguel.chessengine.PieceType;
 
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 
 import static ie.miguel.chessengine.move.moveUtils.*;
@@ -183,6 +184,9 @@ public class Board {
     }
 
     public boolean isCheck(){
+        HashSet<Move> validMoves= generateAllMoves(this);
+        System.out.println("TESTSETSET");
+        System.out.println(validMoves);
         return true;
     }
 

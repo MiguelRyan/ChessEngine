@@ -72,6 +72,7 @@ class MoveTest {
         // TODO: Tests for En Passant and Promotions. Capturing around the edge (i.e. 24 -> 39 for white).
         // TODO: Refactor this and conjoin with Black tests.
         // Beginning Moves.
+        Board board = new Board(PieceType.WHITE_PAWN);
         Move oneStep = new Move(PieceType.WHITE_PAWN, 8, 16);
         Move twoStep = new Move(PieceType.WHITE_PAWN, 9, 25);
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
@@ -102,8 +103,12 @@ class MoveTest {
         Move takeEnemyRight = new Move(PieceType.WHITE_PAWN, 25, 34);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyRight), takeEnemyRight + " TAKING ENEMY ON RIGHT");
 
+        board.placePiece(PieceType.WHITE_PAWN, 25);
+
         Move takeEnemyLeft = new Move(PieceType.WHITE_PAWN, 25, 32);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyLeft), takeEnemyLeft + " TAKING ENEMY ON LEFT");
+
+        board.placePiece(PieceType.WHITE_PAWN, 25);
 
         Move takeEnemyInfront = new Move(PieceType.WHITE_PAWN, 25, 33);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeEnemyInfront), takeEnemyInfront + " TAKING ENEMY IN FRONT");
@@ -113,6 +118,7 @@ class MoveTest {
     public void testBlackPawns(){
         // TODO: Same as white pawns.
         // Beginning Moves.
+        Board board = new Board(PieceType.BLACK_PAWN);
         Move oneStep = new Move(PieceType.BLACK_PAWN, 48, 40);
         Move twoStep = new Move(PieceType.BLACK_PAWN, 49, 33);
         assertDoesNotThrow(() -> board.makeMove(oneStep), oneStep + " FIRST ONE STEP");
@@ -146,8 +152,12 @@ class MoveTest {
         Move takeEnemyRight = new Move(PieceType.BLACK_PAWN, 33, 26);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyRight), takeEnemyRight + " TAKING ENEMY ON RIGHT");
 
+        board.placePiece(PieceType.BLACK_PAWN, 33);
+
         Move takeEnemyLeft = new Move(PieceType.BLACK_PAWN, 33, 24);
         assertDoesNotThrow(() -> board.makeMove(takeEnemyLeft), takeEnemyLeft + " TAKING ENEMY ON LEFT");
+
+        board.placePiece(PieceType.BLACK_PAWN, 33);
 
         Move takeEnemyInfront = new Move(PieceType.BLACK_PAWN, 33, 25);
         assertThrows(IllegalMoveException.class, () -> board.makeMove(takeEnemyInfront), takeEnemyInfront + " TAKING ENEMY IN FRONT");
