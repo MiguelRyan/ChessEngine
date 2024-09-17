@@ -2,7 +2,7 @@ package ie.miguel.chessengine;
 
 import ie.miguel.chessengine.board.Board;
 import ie.miguel.chessengine.exception.IllegalMoveException;
-import ie.miguel.chessengine.move.Move;
+import ie.miguel.chessengine.board.Move;
 
 import java.util.Arrays;
 import java.util.List;
@@ -49,10 +49,15 @@ public class MoveTestUtils {
         board.placePiece(PieceType.WHITE_PAWN, 27);
         board.placePiece(PieceType.WHITE_PAWN, 43);
 
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(upTwo), upTwo + " JUMPING OVER PIECE MOVING UP");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(downTwo), downTwo + " JUMPING OVER PIECE MOVING DOWN");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(twoRight), twoRight + " JUMPING OVER PIECE MOVING RIGHT");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(twoLeft), twoLeft + " JUMPING OVER PIECE MOVING LEFT");
+        Move downTwo2 = new Move(piece, 35, 19);
+        Move upTwo2 = new Move(piece, 35, 51);
+        Move rightTwo2 = new Move(piece, 35, 37);
+        Move leftTwo2 = new Move(piece, 35, 33);
+
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(upTwo2), upTwo2 + " JUMPING OVER PIECE MOVING UP");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(downTwo2), downTwo2 + " JUMPING OVER PIECE MOVING DOWN");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(rightTwo2), rightTwo2 + " JUMPING OVER PIECE MOVING RIGHT");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(leftTwo2), leftTwo2 + " JUMPING OVER PIECE MOVING LEFT");
     }
 
     public static void testIllegalStraight(PieceType piece){
@@ -93,16 +98,23 @@ public class MoveTestUtils {
         Move downLeft = new Move(piece, 57, 43);
         assertDoesNotThrow(() -> board.makeMove(downLeft), downLeft + " MOVE DOWN LEFT");
 
+        board.removePiece(piece, 43);
+        board.placePiece(piece, 35);
         // Avoid jumping over pieces.
-        board.placePiece(PieceType.WHITE_PAWN, 34);
-        board.placePiece(PieceType.WHITE_PAWN, 36);
-        board.placePiece(PieceType.WHITE_PAWN, 50);
-        board.placePiece(PieceType.WHITE_PAWN, 52);
+        board.placePiece(PieceType.WHITE_PAWN, 42);
+        board.placePiece(PieceType.WHITE_PAWN, 44);
+        board.placePiece(PieceType.WHITE_PAWN, 26);
+        board.placePiece(PieceType.WHITE_PAWN, 28);
 
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(upRight), upRight + " MOVE UP RIGHT JUMPING OVER PIECE");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(upLeft), upLeft + " MOVE UP LEFT JUMPING OVER PIECE");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(downLeft), downLeft + " MOVE DOWN LEFT JUMPING OVER PIECE");
-        assertThrows(IllegalMoveException.class, () -> board.makeMove(downRight), downRight + " MOVE DOWN RIGHT JUMPING OVER PIECE");
+        Move upRight2 = new Move(piece, 35, 53);
+        Move downRight2 = new Move(piece, 35, 21);
+        Move upLeft2 = new Move(piece, 35, 49);
+        Move downLeft2 = new Move(piece, 35, 17);
+
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(upRight2), upRight2 + " MOVE UP RIGHT JUMPING OVER PIECE");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(upLeft2), upLeft2 + " MOVE UP LEFT JUMPING OVER PIECE");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(downLeft2), downLeft2 + " MOVE DOWN LEFT JUMPING OVER PIECE");
+        assertThrows(IllegalMoveException.class, () -> board.makeMove(downRight2), downRight2 + " MOVE DOWN RIGHT JUMPING OVER PIECE");
     }
 
     public static void testIllegalDiagonal(PieceType piece){

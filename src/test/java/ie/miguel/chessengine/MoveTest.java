@@ -3,7 +3,7 @@ package ie.miguel.chessengine;
 import ie.miguel.chessengine.board.Board;
 import ie.miguel.chessengine.exception.IllegalMoveException;
 import ie.miguel.chessengine.exception.OutOfOrderMoveException;
-import ie.miguel.chessengine.move.Move;
+import ie.miguel.chessengine.board.Move;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +50,7 @@ class MoveTest {
 
             // Check that the piece cannot move.
             for (int i = 0; i <= 63; i++) {
+                if (i == 33) continue; // This is when the piece is able to capture.
                 Move move = new Move(piece, 34, i);
                 assertThrows(IllegalMoveException.class, () -> board.makeMove(move), move + " allows king to be captured.");
             }

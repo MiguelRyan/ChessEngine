@@ -1,32 +1,14 @@
 package ie.miguel.chessengine.board;
 
-import ie.miguel.chessengine.move.Move;
 import ie.miguel.chessengine.PieceType;
 
+import java.util.Arrays;
 import java.util.HashSet;
-
-import static ie.miguel.chessengine.move.moveUtils.generateAllMoves;
+import java.util.List;
 
 public class BoardUtils {
-
-    public static boolean isCheck(Board board){
-        PieceType king;
-        long bitboard;
-        // If it is whites turn we want to know if the white king is in check.
-        king = board.isWhiteToMove() ? PieceType.WHITE_KING : PieceType.BLACK_KING;
-        int kingLocation = findKingPosition(king, board);
-
-        HashSet<Move> possibleMoves = generateAllMoves(board);
-        for (Move move : possibleMoves) {
-            if (move.toSquare() == kingLocation) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-
+    public final static List<PieceType> whitePieces = Arrays.asList(PieceType.WHITE_PAWN, PieceType.WHITE_BISHOP, PieceType.WHITE_ROOK, PieceType.WHITE_KNIGHT, PieceType.WHITE_KING, PieceType.WHITE_QUEEN);
+    public final static List<PieceType> blackPieces = Arrays.asList(PieceType.BLACK_PAWN, PieceType.BLACK_KNIGHT, PieceType.BLACK_KING, PieceType.BLACK_QUEEN, PieceType.BLACK_ROOK, PieceType.BLACK_BISHOP);
 
     public static HashSet<Integer> getPieceLocations(long bitboard){
         HashSet<Integer> locations = new HashSet<>();

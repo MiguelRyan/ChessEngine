@@ -1,7 +1,7 @@
 package ie.miguel.chessengine;
 
 import ie.miguel.chessengine.board.Board;
-import ie.miguel.chessengine.move.Move;
+import ie.miguel.chessengine.board.Move;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

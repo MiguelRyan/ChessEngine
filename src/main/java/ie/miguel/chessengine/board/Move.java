@@ -1,4 +1,4 @@
-package ie.miguel.chessengine.move;
+package ie.miguel.chessengine.board;
 
 import ie.miguel.chessengine.PieceType;
 

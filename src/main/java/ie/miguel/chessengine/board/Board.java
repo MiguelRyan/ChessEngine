@@ -1,22 +1,18 @@
 package ie.miguel.chessengine.board;
 
 import ie.miguel.chessengine.exception.IllegalMoveException;
-import ie.miguel.chessengine.move.Move;
 import ie.miguel.chessengine.exception.OutOfOrderMoveException;
 import ie.miguel.chessengine.PieceType;
 
-import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 
-import static ie.miguel.chessengine.move.moveUtils.*;
+import static ie.miguel.chessengine.board.BoardUtils.*;
+import static ie.miguel.chessengine.board.legalMoveUtils.*;
 
 // TODO: MAJOR MAJOR REFACTORING: There is a lot of code smell in the form of classes that have unclear goals. moveUtils specifically.
 public class Board {
-    public final static List<PieceType> whitePieces = Arrays.asList(PieceType.WHITE_PAWN, PieceType.WHITE_BISHOP, PieceType.WHITE_ROOK, PieceType.WHITE_KNIGHT, PieceType.WHITE_KING, PieceType.WHITE_QUEEN);
-    public final static List<PieceType> blackPieces = Arrays.asList(PieceType.BLACK_PAWN, PieceType.BLACK_KNIGHT, PieceType.BLACK_KING, PieceType.BLACK_QUEEN, PieceType.BLACK_ROOK, PieceType.BLACK_BISHOP);
-
     // Bitboards for the starting position where a1 = 0, and h8 = 63.
     private EnumMap<PieceType, Long> pieceBitBoards;
     private boolean whiteToMove = true;
@@ -41,6 +37,7 @@ public class Board {
     public Board(Board old){
         this.pieceBitBoards = new EnumMap<>(old.pieceBitBoards);
         this.whiteToMove = old.whiteToMove;
+        this.moveChanges = old.moveChanges;
     }
 
     public Board(PieceType piece) {
@@ -65,6 +62,115 @@ public class Board {
 
     public void clearBoard(){
         pieceBitBoards.replaceAll((t, v) -> 0L);
+    }
+
+    public void makeMove(Move move){
+        List<PieceType> piecesOfCurrentPlayer = whiteToMove ? whitePieces : blackPieces;
+        if (!piecesOfCurrentPlayer.contains(move.piece())){
+            throw new OutOfOrderMoveException("Wrong player moved " + move);
+        }
+
+        if (!isLegalMove(move)){
+            throw new IllegalMoveException("Illegal move: " + move);
+        }
+
+        if (leavesKingInCheck(move)){
+            throw new IllegalMoveException("Move allows king to be captured: " + move);
+        }
+
+        PieceType movingPiece = squareIsOccupied(move.fromSquare());
+
+        if (movingPiece != move.piece()){
+            throw new IllegalMoveException("Attempted to move " + move.piece() + " from " + move.fromSquare() + " but " + movingPiece + " is present instead.");
+        }
+
+        PieceType toCapture = squareIsOccupied(move.toSquare());
+        if (piecesOfCurrentPlayer.contains(toCapture)){
+            throw new IllegalMoveException("Attempted to take own piece: " + move);
+        }
+
+        if (toCapture != null){
+            removePiece(toCapture, move.toSquare());
+        }
+        placePiece(move.piece(), move.toSquare());
+        removePiece(move.piece(), move.fromSquare());
+
+        // For the testing board.
+        if (moveChanges) {
+            whiteToMove = !whiteToMove;
+        }
+    }
+
+    private boolean isLegalMove(Move move){
+        PieceType piece = move.piece();
+        if (move.fromSquare() == move.toSquare()) return false;
+
+        if (piece == PieceType.WHITE_PAWN || piece == PieceType.BLACK_PAWN){
+            return isLegalPawnMove(move, this);
+        }
+        if (piece == PieceType.WHITE_KNIGHT || piece == PieceType.BLACK_KNIGHT){
+            return isLegalKnightMove(move);
+        }
+        if (piece == PieceType.WHITE_BISHOP || piece == PieceType.BLACK_BISHOP){
+            return isLegalBishopMove(move, this);
+        }
+        if (piece == PieceType.WHITE_ROOK || piece == PieceType.BLACK_ROOK){
+            return isLegalRookMove(move, this);
+        }
+        if (piece == PieceType.WHITE_QUEEN || piece == PieceType.BLACK_QUEEN){
+            return isLegalRookMove(move, this) || isLegalBishopMove(move, this);
+        }
+        if (piece == PieceType.WHITE_KING || piece == PieceType.BLACK_KING){
+            return isLegalKingMove(move, this);
+        }
+
+        return false;
+    }
+
+    private boolean leavesKingInCheck(Move move){
+        Board simulationBoard = new Board(this);
+        PieceType toCapture = simulationBoard.squareIsOccupied(move.toSquare());
+
+        if (toCapture != null){
+            simulationBoard.removePiece(toCapture, move.toSquare());
+        }
+        simulationBoard.placePiece(move.piece(), move.toSquare());
+        simulationBoard.removePiece(move.piece(), move.fromSquare());
+        PieceType king = simulationBoard.whiteToMove ? PieceType.WHITE_KING : PieceType.BLACK_KING;
+        int kingPosition = findKingPosition(king, simulationBoard);
+
+        for (Move enemyMove: simulationBoard.generateAllMoves()){
+            if (enemyMove.toSquare() == kingPosition) return true;
+        }
+
+        return false;
+    }
+
+    private HashSet<Move> generateMovesForPiece(PieceType piece) {
+        HashSet<Move> possibleMoves = new HashSet<>();
+
+        long bitboard = getPieceBitBoards().get(piece);
+        HashSet<Integer> pieceLocations = getPieceLocations(bitboard);
+        for (int location: pieceLocations){
+            for (int i = 0; i <= 63; i++){
+                Move move = new Move(piece, location, i);
+                if (isLegalMove(move)) {
+                    possibleMoves.add(move);
+                }
+            }
+        }
+        return possibleMoves;
+    }
+
+    public HashSet<Move> generateAllMoves(){
+        List<PieceType> enemyPieces = isWhiteToMove() ? blackPieces : whitePieces;
+        HashSet<Move> possibleMoves = new HashSet<>();
+
+        for (PieceType piece: enemyPieces){
+            possibleMoves.addAll(generateMovesForPiece(piece));
+        }
+
+        return possibleMoves;
     }
 
     @Override
@@ -101,34 +207,6 @@ public class Board {
         return sb.toString();
     }
 
-    public void makeMove(Move move){
-        List<PieceType> piecesOfCurrentPlayer = whiteToMove ? whitePieces : blackPieces;
-        if (!piecesOfCurrentPlayer.contains(move.piece())){
-            throw new OutOfOrderMoveException("Wrong player moved " + move);
-        }
-        if (!isLegalMove(move, this)){
-            throw new IllegalMoveException("Illegal move: " + move);
-        }
-
-        PieceType movingPiece = squareIsOccupied(move.fromSquare());
-
-        if (movingPiece != move.piece()){
-            throw new IllegalMoveException("Attempted to move " + move.piece() + " from " + move.fromSquare() + " but " + movingPiece + " is present instead.");
-        }
-
-        PieceType toCapture = squareIsOccupied(move.toSquare());
-        if (toCapture != null){
-            removePiece(toCapture, move.toSquare());
-        }
-        placePiece(move.piece(), move.toSquare());
-        removePiece(move.piece(), move.fromSquare());
-
-        // For the testing board.
-        if (moveChanges) {
-            whiteToMove = !whiteToMove;
-        }
-    }
-
     public PieceType squareIsOccupied(int location){
         if (location < 0 || location > 63){
             throw new IllegalArgumentException("Location must be between 0 and 63");
@@ -142,19 +220,6 @@ public class Board {
         }
 
         return null;
-    }
-
-    private PieceType capturePiece(Move move){
-        // Returns the piece that was captured.
-        PieceType capturedPiece = squareIsOccupied(move.toSquare());
-        if (capturedPiece == null){
-            throw new IllegalArgumentException("Attempting to capture at: " + move.toSquare() + " but no piece is present to capture.");
-        }
-
-        removePiece(capturedPiece, move.toSquare());
-        placePiece(move.piece(), move.toSquare());
-
-        return capturedPiece;
     }
 
     public void removePiece(PieceType piece, int location){
@@ -183,19 +248,7 @@ public class Board {
         return whiteToMove;
     }
 
-    public boolean isCheck(){
-        HashSet<Move> validMoves= generateAllMoves(this);
-        System.out.println("TESTSETSET");
-        System.out.println(validMoves);
-        return true;
-    }
-
-    public boolean isCheckmate(){
-        return true;
-    }
-
     public EnumMap<PieceType, Long> getPieceBitBoards() {
         return pieceBitBoards;
     }
-
 }

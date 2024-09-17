@@ -1,47 +1,15 @@
-package ie.miguel.chessengine.move;
+package ie.miguel.chessengine.board;
 
 import ie.miguel.chessengine.exception.IllegalMoveException;
 import ie.miguel.chessengine.PieceType;
-import ie.miguel.chessengine.board.Board;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import static ie.miguel.chessengine.board.Board.blackPieces;
-import static ie.miguel.chessengine.board.Board.whitePieces;
-import static ie.miguel.chessengine.board.BoardUtils.getPieceLocations;
-import static ie.miguel.chessengine.board.BoardUtils.isCheck;
-
-public class moveUtils {
-    public static boolean isLegalMove(Move move, Board board){
-        PieceType piece = move.piece();
-        if (move.fromSquare() == move.toSquare()) return false;
-
-        if (piece == PieceType.WHITE_PAWN || piece == PieceType.BLACK_PAWN){
-            return isLegalPawnMove(move, board);
-        }
-        if (piece == PieceType.WHITE_KNIGHT || piece == PieceType.BLACK_KNIGHT){
-            return isLegalKnightMove(move);
-        }
-        if (piece == PieceType.WHITE_BISHOP || piece == PieceType.BLACK_BISHOP){
-            return isLegalBishopMove(move, board);
-        }
-        if (piece == PieceType.WHITE_ROOK || piece == PieceType.BLACK_ROOK){
-            return isLegalRookMove(move, board);
-        }
-        if (piece == PieceType.WHITE_QUEEN || piece == PieceType.BLACK_QUEEN){
-            return isLegalRookMove(move, board) || isLegalBishopMove(move, board);
-        }
-        if (piece == PieceType.WHITE_KING || piece == PieceType.BLACK_KING){
-            return isLegalKingMove(move, board);
-        }
-
-        return false;
-    }
-
-    private static boolean isLegalPawnMove(Move move, Board board){
+public class legalMoveUtils {
+    static boolean isLegalPawnMove(Move move, Board board){
         // TODO: En passant.
         int sign = 1;
         int pawnRankStart;
@@ -83,7 +51,7 @@ public class moveUtils {
         return false;
     }
 
-    private static boolean isLegalKnightMove(Move move){
+    static boolean isLegalKnightMove(Move move){
         int from = move.fromSquare();
         int to = move.toSquare();
 
@@ -116,15 +84,15 @@ public class moveUtils {
         return false;
     }
 
-    private static boolean isLegalBishopMove(Move move, Board board){
+    static boolean isLegalBishopMove(Move move, Board board){
         return isDiagonalMove(move) && locationsInDiagonalPath(move, board).isEmpty();
     }
 
-    private static boolean isLegalRookMove(Move move, Board board){
+    static boolean isLegalRookMove(Move move, Board board){
         return isStraightMove(move) && locationsInStraightPath(move, board).isEmpty();
     }
 
-    private static boolean isLegalKingMove(Move move, Board board){
+    static boolean isLegalKingMove(Move move, Board board){
         int from = move.fromSquare();
         int to = move.toSquare();
         int rank = from / 8;
@@ -155,7 +123,7 @@ public class moveUtils {
         if (valid.contains(to) && board.squareIsOccupied(to) == null){
             return true;
         }
-        throw new IllegalMoveException("Invalid move: " + move);
+        return false;
     }
 
     private static boolean isEnemy(Move move, PieceType enemy){
@@ -166,56 +134,21 @@ public class moveUtils {
         return enemyString.charAt(0) != pieceString.charAt(0);
     }
 
-    private static boolean isStraightMove(Move move){
+    static boolean isStraightMove(Move move){
         int fromSquare = move.fromSquare();
         int toSquare = move.toSquare();
 
         return fromSquare / 8 == toSquare / 8 || fromSquare % 8 == toSquare % 8;
     }
 
-    private static boolean isDiagonalMove(Move move){
+    static boolean isDiagonalMove(Move move){
         int rankDifference = (move.fromSquare() / 8) - (move.toSquare() / 8);
         int fileDifference = (move.fromSquare() % 8) - (move.toSquare() % 8);
 
         return Math.abs(rankDifference) == Math.abs(fileDifference);
     }
 
-    private static HashSet<Move> generateMovesForPiece(PieceType piece, Board board) {
-        // My thinking is we need to generate all possible moves even ones that result in check.
-        // Then we can use this to see if any of the moves could take the king.
-        // If so those moves are removed from the set.
-        HashSet<Move> possibleMoves = new HashSet<>();
-
-        long bitboard = board.getPieceBitBoards().get(piece);
-        HashSet<Integer> pieceLocations = getPieceLocations(bitboard);
-        for (int location: pieceLocations){
-            for (int i = 0; i <= 63; i++){
-                Move move = new Move(piece, location, i);
-                if (isLegalMove(move, board)) {
-                    possibleMoves.add(move);
-                }
-            }
-        }
-        return possibleMoves;
-    }
-
-    private static boolean moveLeavesKingInCheck(Board board, Move move){
-        Board simulationBoard = new Board(board);
-        PieceType piece = simulationBoard.squareIsOccupied(move.fromSquare());
-        PieceType toPiece = simulationBoard.squareIsOccupied(move.toSquare());
-
-        simulationBoard.removePiece(piece, move.fromSquare());
-
-        if (toPiece != null){
-            simulationBoard.removePiece(toPiece, move.toSquare());
-        }
-
-        simulationBoard.placePiece(piece, move.toSquare());
-
-        return simulationBoard.isCheck();
-    }
-
-    private static HashSet<Integer> locationsInStraightPath(Move move, Board board){
+    static HashSet<Integer> locationsInStraightPath(Move move, Board board){
         //TODO: I think this should throw the error in the else but that causes issues with testing,
         //TODO: when the diagonals are tested. This could also be done a lot more elegantly.
         HashSet<Integer> locations = new HashSet<>();
@@ -225,6 +158,12 @@ public class moveUtils {
         int startFile = start % 8;
         int endRank = end / 8;
         int endFile = end % 8;
+
+        if (start > end){
+            int temp = start;
+            start = end;
+            end = temp;
+        }
 
         if (startRank == endRank){
             // Horizontal Move.
@@ -248,27 +187,15 @@ public class moveUtils {
         return locations;
     }
 
-    private static HashSet<Integer> locationsInDiagonalPath(Move move, Board board){
-        // TODO: Similar to locationsInStraightPath, figure out what to do with the exception.
-        int start = move.fromSquare();
-        int end = move.toSquare();
-        int startRank = start / 8;
-        int startFile = start % 8;
-        int endRank = end / 8;
-        int endFile = end % 8;
-        int fileDiff = endFile - startFile;
-        int rankDiff = endRank - startRank;
-
-        if (fileDiff != rankDiff){
-            //throw new IllegalArgumentException("Non-diagonal path passed: " + start + " to " + end);
-        }
-        HashSet<Integer> locations = new HashSet<>();
-        int sign = startFile > endFile ? -1 : 1;
+    static HashSet<Integer> locationsInDiagonalPath(Move move, Board board){
+        int start = Math.min(move.fromSquare(), move.toSquare());
+        int end = Math.max(move.fromSquare(), move.toSquare());
 
         int endAdjusted = end - start;
         int amount = endAdjusted % 9 == 0 ? 9 : 7;
-        amount *= sign;
 
+
+        HashSet<Integer> locations = new HashSet<>();
         for (int i = start + amount; i < end && i >= 0; i += amount){
             if (board.squareIsOccupied(i) != null){
                 locations.add(i);
@@ -276,16 +203,5 @@ public class moveUtils {
         }
 
         return locations;
-    }
-
-    public static HashSet<Move> generateAllMoves(Board board){
-        List<PieceType> enemyPieces = board.isWhiteToMove() ? blackPieces : whitePieces;
-        HashSet<Move> possibleMoves = new HashSet<>();
-
-        for (PieceType piece: enemyPieces){
-            possibleMoves.addAll(generateMovesForPiece(piece, board));
-        }
-
-        return possibleMoves;
     }
 }
